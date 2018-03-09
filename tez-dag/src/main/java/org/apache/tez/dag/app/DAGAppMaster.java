@@ -19,11 +19,19 @@
 package org.apache.tez.dag.app;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.SSL_KEYSTORE_KEYPASSWORD_TPL_KEY;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.SSL_KEYSTORE_LOCATION_TPL_KEY;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.SSL_KEYSTORE_PASSWORD_TPL_KEY;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.SSL_TRUSTSTORE_LOCATION_TPL_KEY;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.SSL_TRUSTSTORE_PASSWORD_TPL_KEY;
+import static org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory.resolvePropertyName;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -66,6 +74,9 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.net.HopsSSLSocketFactory;
+import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
@@ -507,6 +518,18 @@ public class DAGAppMaster extends AbstractService {
           + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
           + " recoveryAttemptDir :" + currentRecoveryDataDir);
     }
+
+    /*
+     *  If HopsTLS is enabled we need to dump the information about the user certificates to a file
+     *  in the current working directory called ssl-server.xml.
+     *  We then need to change in the configuration where the ssl-server.xml is located and only after that
+     *  we are able to start the rpc server
+     */
+    if (conf.getBoolean(CommonConfigurationKeysPublic.IPC_SERVER_SSL_ENABLED,
+        CommonConfigurationKeysPublic.IPC_SERVER_SSL_ENABLED_DEFAULT)) {
+      generateSSLServerFile(conf);
+    }
+
     recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
         TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
 
@@ -2799,6 +2822,36 @@ public class DAGAppMaster extends AbstractService {
       }
     }
     return sb.toString();
+  }
+
+  private void generateSSLServerFile(Configuration clientConf) throws TezUncheckedException {
+    Configuration sslServerConf = new Configuration(false);
+
+    // TODO(Fabio) key rotation?
+    // Set ssl-server.xml configuration (using the client certificates)
+    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_TRUSTSTORE_LOCATION_TPL_KEY),
+        HopsSSLSocketFactory.LOCALIZED_TRUSTSTORE_FILE_NAME);
+    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_TRUSTSTORE_PASSWORD_TPL_KEY),
+        clientConf.get(HopsSSLSocketFactory.CryptoKeys.TRUST_STORE_PASSWORD_KEY.getValue()));
+
+    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_LOCATION_TPL_KEY),
+        HopsSSLSocketFactory.LOCALIZED_KEYSTORE_FILE_NAME);
+    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_PASSWORD_TPL_KEY),
+        clientConf.get(HopsSSLSocketFactory.CryptoKeys.KEY_STORE_PASSWORD_KEY.getValue()));
+    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_KEYPASSWORD_TPL_KEY),
+        clientConf.get(HopsSSLSocketFactory.CryptoKeys.KEY_PASSWORD_KEY.getValue()));
+
+    try {
+      OutputStream xmlFile = new FileOutputStream("ssl-server.xml");
+      try {
+        sslServerConf.writeXml(xmlFile);
+      } finally {
+        xmlFile.close();
+      }
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
+
   }
 
 }
