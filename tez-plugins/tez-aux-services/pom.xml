@@ -19,8 +19,8 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <artifactId>tez-plugins</artifactId>
-    <groupId>org.apache.tez</groupId>
-    <version>0.9.1</version>
+    <groupId>io.hops.tez</groupId>
+    <version>0.9.1.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -94,12 +94,12 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.tez</groupId>
+      <groupId>io.hops.tez</groupId>
       <artifactId>tez-api</artifactId>
     </dependency>
     <dependency>
       <!-- Required for the ShuffleHandler -->
-      <groupId>org.apache.tez</groupId>
+      <groupId>io.hops.tez</groupId>
       <artifactId>tez-runtime-library</artifactId>
     </dependency>
     <dependency>
@@ -141,7 +141,7 @@
       <type>test-jar</type>
     </dependency>
    <dependency>
-     <groupId>org.apache.tez</groupId>
+     <groupId>io.hops.tez</groupId>
      <artifactId>tez-tests</artifactId>
      <scope>test</scope>
      <type>test-jar</type>
@@ -161,7 +161,7 @@
      <type>test-jar</type>
   </dependency>
   <dependency>
-     <groupId>org.apache.tez</groupId>
+     <groupId>io.hops.tez</groupId>
      <artifactId>tez-dag</artifactId>
      <scope>test</scope>
    </dependency>
@@ -224,7 +224,7 @@
                 </filter>
                 <!-- Remove SecurityInfo to avoid loading DAGClientSecurityInfo which can break daemon(RM,NM etc.) start up -->
                 <filter>
-                  <artifact>org.apache.tez:tez-api</artifact>
+                  <artifact>io.hops.tez:tez-api</artifact>
                   <excludes>
                     <exclude>META-INF/services/org.apache.hadoop.security.SecurityInfo</exclude>
                   </excludes>

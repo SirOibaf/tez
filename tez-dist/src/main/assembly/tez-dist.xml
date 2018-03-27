@@ -23,7 +23,7 @@
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <excludes>
-        <exclude>org.apache.tez:tez-aux-services</exclude>
+        <exclude>io.hops.tez:tez-aux-services</exclude>
       </excludes>
       <binaries>
         <outputDirectory>/</outputDirectory>
@@ -35,7 +35,7 @@
             <outputDirectory>/lib</outputDirectory>
             <excludes>
               <exclude>*:*:test-jar</exclude>
-              <exclude>org.apache.tez:*</exclude>
+              <exclude>io.hops.tez:*</exclude>
             </excludes>
           </dependencySet>
         </dependencySets>
