@@ -44,7 +44,7 @@
               <exclude>io.hops:hadoop-yarn-client</exclude>
               <exclude>io.hops:hadoop-yarn-common</exclude>
               <exclude>io.hops:hadoop-yarn-server-web-proxy</exclude>
-              <exclude>org.apache.tez:*</exclude>
+              <exclude>io.hops.tez:*</exclude>
             </excludes>
           </dependencySet>
         </dependencySets>
