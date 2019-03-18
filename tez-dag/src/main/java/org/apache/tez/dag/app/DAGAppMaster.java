@@ -70,6 +70,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 
+import io.hops.security.HopsUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -521,13 +522,11 @@ public class DAGAppMaster extends AbstractService {
 
     /*
      *  If HopsTLS is enabled we need to dump the information about the user certificates to a file
-     *  in the current working directory called ssl-server.xml.
-     *  We then need to change in the configuration where the ssl-server.xml is located and only after that
-     *  we are able to start the rpc server
+     *  in the current working directory called ssl-server.xml so that the RPC servers can bootstrap
      */
     if (conf.getBoolean(CommonConfigurationKeysPublic.IPC_SERVER_SSL_ENABLED,
         CommonConfigurationKeysPublic.IPC_SERVER_SSL_ENABLED_DEFAULT)) {
-      generateSSLServerFile(conf);
+      HopsUtil.generateContainerSSLServerConfiguration(conf);
     }
 
     recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
@@ -2822,36 +2821,6 @@ public class DAGAppMaster extends AbstractService {
       }
     }
     return sb.toString();
-  }
-
-  private void generateSSLServerFile(Configuration clientConf) throws TezUncheckedException {
-    Configuration sslServerConf = new Configuration(false);
-
-    // TODO(Fabio) key rotation?
-    // Set ssl-server.xml configuration (using the client certificates)
-    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_TRUSTSTORE_LOCATION_TPL_KEY),
-        HopsSSLSocketFactory.LOCALIZED_TRUSTSTORE_FILE_NAME);
-    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_TRUSTSTORE_PASSWORD_TPL_KEY),
-        clientConf.get(HopsSSLSocketFactory.CryptoKeys.TRUST_STORE_PASSWORD_KEY.getValue()));
-
-    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_LOCATION_TPL_KEY),
-        HopsSSLSocketFactory.LOCALIZED_KEYSTORE_FILE_NAME);
-    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_PASSWORD_TPL_KEY),
-        clientConf.get(HopsSSLSocketFactory.CryptoKeys.KEY_STORE_PASSWORD_KEY.getValue()));
-    sslServerConf.set(resolvePropertyName(SSLFactory.Mode.SERVER, SSL_KEYSTORE_KEYPASSWORD_TPL_KEY),
-        clientConf.get(HopsSSLSocketFactory.CryptoKeys.KEY_PASSWORD_KEY.getValue()));
-
-    try {
-      OutputStream xmlFile = new FileOutputStream("ssl-server.xml");
-      try {
-        sslServerConf.writeXml(xmlFile);
-      } finally {
-        xmlFile.close();
-      }
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
-
   }
 
 }
